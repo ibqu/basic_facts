@@ -37,6 +37,9 @@ You need to insert the tests dynamically
                     <button id="main_screen_tests_button">Tests</button>
                     <br>
                     <button id="main_screen_settings_button">Settings</button>
+                    <br>
+                    <button id="main_screen_help_button">Help</button>
+                    <br>
                 </div>
                 <div id="settings_screen" style="display: none;">
                     <h1>Settings</h1>
@@ -55,12 +58,11 @@ You need to insert the tests dynamically
                 <div id="test_screen" style="display: none;">
                     <!--Maybe use MathML later-->
                     <div id="expression_container">
-                        <div id="expression">
-                            
-                        </div>
+                        <div id="expression"> </div>
                     </div>
                     <div id="answer_container">
-                        <input type="number" id="answer_box">
+                        <!--Uses the text type so there are none of the buttons on the right-->
+                        <input type="text" id="answer_box">
                     </div>
                     <div id="progress_container">
                         <span id="test_progress">Question 1 of 10</span>
@@ -72,6 +74,16 @@ You need to insert the tests dynamically
                         <span id="answers_wrong">0</span>
                         <span>&#10060;</span>
                     </div>
+                </div>
+                <div id="test_results_screen" style="display: none;">
+                    <h1>Results</h1>
+                    <br>
+                    <div>Answers correct:</div>
+                    <br>
+                    <div id="results_answers_correct">0 / 0</div>
+                    <br>
+                    <button id="results_screen_restart_button">Restart</button>
+                    <button id="results_screen_back_to_tests_button">Tests</button>
                 </div>
             </div>
         </div>

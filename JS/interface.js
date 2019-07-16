@@ -10,14 +10,15 @@ addEventListener("load", function(){
         "tests": from_id("tests_screen"),
         "test": from_id("test_screen"),
         "settings": from_id("settings_screen"),
-        "help": from_id("help_screen")
+        "help": from_id("help_screen"),
+        "test_results": from_id("test_results_screen")
     }
     
     var static_options = {
         "main": from_id("main_option"),
         "settings": from_id("settings_option"),
         "tests": from_id("tests_option"),
-        "help": from_id("help_option")
+        "help": from_id("help_option"),
     }
     
     var static_screen_names = ["main", "settings", "tests", "help"];
@@ -79,6 +80,10 @@ addEventListener("load", function(){
         select_static_screen("settings");
     });
     
+    from_id("main_screen_help_button").addEventListener("click", function(){
+        select_static_screen("help");
+    });
+    
     //make the input on test_screen respond to input
     from_id("answer_box").addEventListener("keyup", function(e){
         if(e.key === "Enter"){
@@ -87,14 +92,43 @@ addEventListener("load", function(){
         }
     });
     
+    //prevent invalid characters from being entered (don't use the input number type as it adds unwanted buttons)
+    from_id("answer_box").addEventListener("keydown", function(e){
+        if(current_test_object.numeric && !/^[0-9+-]|Backspace$/.test(e.key)){
+            //could use input type number but don't want the buttons on the right
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    })
+    
     update_progress_and_correctness = function update_progress_and_correctness(){
         from_id("test_progress").firstChild.nodeValue = "Question " + (questions_done + 1) + " of " + number_of_questions;
         from_id("answers_correct").firstChild.nodeValue = correct_answer_count;
         from_id("answers_wrong").firstChild.nodeValue = incorrect_answer_count;
     }
+    
+    reset_test_screen = function reset_test_screen(){
+        from_id("expression").innerHTML = "";
+        from_id("answer_box").value = "";
+        reset_progress_and_correctness();
+    }
+    
+    show_results_answers_correct = function show_results_answers_correct(){
+        from_id("results_answers_correct").innerHTML = correct_answer_count + " / " + number_of_questions;
+    }
+    
+    //Add event handlers for results screen buttons
+    from_id("results_screen_restart_button").addEventListener("click", restart_test);
+    
+    from_id("results_screen_back_to_tests_button").addEventListener("click", function(){
+        select_static_screen("tests");
+    })
 });
 
 var screens;
 var select_option;
 var select_screen;
 var update_progress_and_correctness;
+var reset_test_screen;
+var show_results_answers_correct;

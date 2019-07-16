@@ -28,11 +28,19 @@ function test_select_handler(test_object){
 }
 
 function start_test(test_object){
+    reset_test_screen();
     //assumes that the test screen is already visible
     current_test_object = test_object;
     correct_answer_count = incorrect_answer_count = questions_done = 0;
     number_of_questions = test_object.number_of_questions;
+    update_progress_and_correctness();
     present_question();
+    from_id("answer_box").focus();
+}
+
+function restart_test(){
+    select_screen(screens.test);
+    start_test(current_test_object);
 }
 
 function present_question(){
@@ -48,15 +56,17 @@ function submit_answer(answer){
     }else{
         ++incorrect_answer_count;
     }
-    update_progress_and_correctness();
-    //maybe do something later relating to limiting the number of questions.
-    present_question()
+    //handle the case where all of the questions have been done
+    if(questions_done === number_of_questions){
+        finish_test();
+    }else{
+        update_progress_and_correctness();
+        present_question();
+    }
 }
 
 function stop_tests(){
-    //just for safety
-    reset_test_screen();
-    reset_progress_and_correctness();
+    //currently useless
 }
 
 function reset_progress_and_correctness(){
@@ -67,13 +77,7 @@ function reset_progress_and_correctness(){
     update_progress_and_correctness();
 }
 
-function reset_test_screen(){
-    from_id("expression").innerHTML = "";
-    from_id("answer_box").value = "";
+function finish_test(){
+    select_screen(screens.test_results);
+    show_results_answers_correct();
 }
-
-//features to add
-//timing
-//right and wrong
-//count of completed questions
-//adaptive tests
