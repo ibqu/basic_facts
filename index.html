@@ -1,0 +1,79 @@
+<!--
+Create something for basic facts
+Enable entering answers rather than just accept/reject
+This should be an HTML thing
+Maybe do this in Brackets
+Perhaps make this something which can be uploaded on Github
+Maybe you should do some planning
+You need to insert the tests dynamically
+
+-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Basic facts</title>
+        <link rel="stylesheet" href="CSS/main.css">
+        <script src="JS/tests.js"></script>
+        <script src="JS/logic.js"></script>
+        <script src="JS/interface.js"></script>
+    </head>
+    <body>
+        <div id="container">
+            <div id="left_panel">
+                <div id="menu">
+                    <div id="main_option" class="option main_option selected_option">Main menu</div>
+                    <div id="settings_option" class="option">Settings</div>
+                    <div id="help_option" class="option">Help</div>
+                </div>
+                <div id="test_choices">
+                    <div id="tests_option" class="option main_option">Tests</div>
+                    <!--<div class="option">4 operations</div>-->
+                </div>
+            </div>
+            <div id="main_panel">
+                <div id="main_screen">
+                    <h1>Some random basic facts thing</h1>
+                    <p>(work in progress)</p>
+                    <button id="main_screen_tests_button">Tests</button>
+                    <br>
+                    <button id="main_screen_settings_button">Settings</button>
+                </div>
+                <div id="settings_screen" style="display: none;">
+                    <h1>Settings</h1>
+                    <p>Nothing to see here...</p>
+                </div>
+                <div id="help_screen" style="display: none;">
+                    <h1>Help</h1>
+                    <p>help me</p>
+                    <br><br><br>
+                    <p style="font-size: 50%; color: grey;">in tests you type in the answer and press enter.</p>
+                </div>
+                <div id="tests_screen" style="display: none;">
+                    <h1>Tests</h1>
+                    <div id="test_option"></div>
+                </div>
+                <div id="test_screen" style="display: none;">
+                    <!--Maybe use MathML later-->
+                    <div id="expression_container">
+                        <div id="expression">
+                            
+                        </div>
+                    </div>
+                    <div id="answer_container">
+                        <input type="number" id="answer_box">
+                    </div>
+                    <div id="progress_container">
+                        <span id="test_progress">Question 1 of 10</span>
+                    </div>
+                    <div id="correctness_container">
+                        <span id="answers_correct">0</span>
+                        <span>&#9989;</span>
+                        <span>&nbsp;&nbsp;</span>
+                        <span id="answers_wrong">0</span>
+                        <span>&#10060;</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
