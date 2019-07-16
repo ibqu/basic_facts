@@ -94,7 +94,7 @@ addEventListener("load", function(){
     
     //prevent invalid characters from being entered (don't use the input number type as it adds unwanted buttons)
     from_id("answer_box").addEventListener("keydown", function(e){
-        if(current_test_object.numeric && !/^[0-9+-]|Backspace$/.test(e.key)){
+        if(current_test_object.numeric && !/^[0-9-]|Backspace$/.test(e.key)){
             //could use input type number but don't want the buttons on the right
             e.preventDefault();
             e.stopPropagation();

@@ -52,6 +52,14 @@ SimpleAdaptiveRange.prototype = Object.assign(
             return i + this.start;
         },
         
+        "get_element": function(range_element){
+            return this.array[range_element - this.start];
+        },
+        
+        "set_element": function(range_element, new_value){
+            this.array[range_element - this.start] = new_value;
+        },
+        
         "tweak_value": function(index, new_value){
             //monitor the array and see if any values change weirdly or don't change at all
             this.array[index] = this.array[index] * (1 - this.new_value_weight) + new_value * this.new_value_weight;
@@ -63,6 +71,31 @@ SimpleAdaptiveRange.prototype = Object.assign(
         }
     });
 
+function compute_weight(existing_weight, is_correct, time_taken){
+    //if the time taken is high, make the question more likely
+    //if the answer is incorrect, make the question more likely
+    //if the existing weight is higher, the question should be more likely
+    //The objective is to make it better at improving basic facts skills
+    //Possibly usable: exponential function
+    //Wrong answers should be worse than answers which take a while to come(but not extremely long)
+    
+    //this is in milliseconds
+    var time_taken_cap = 3000;
+    var new_value;
+    //influence of new_value on the resulting value
+    var malleability = 0.2;
+    
+    if(is_correct){
+        new_value = 0.1 + Math.max(time_taken / time_taken_cap, 1) * 0.3;
+    }else{
+        new_value = 0.4 + Math.max(time_taken / time_taken_cap, 1) * 0.5;
+    }
+    
+    return existing_weight * (1 - malleability) + new_value * malleability;
+}
+
+
+//you will need to do some rewriting to make this more powerful
 var tests = [
     (function(){
         var operation_generators = {
