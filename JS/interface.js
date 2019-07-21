@@ -47,6 +47,7 @@ addEventListener("load", function(){
     //add left panel options for the tests (and add the elements to the test objects)
     //also add event listeners
     for(var i = 0; i < tests.length; ++i){
+        process_test_object(tests[i]);
         var el = document.createElement("div");
         el.classList.add("option");
         el.innerHTML = tests[i].name;
@@ -103,9 +104,9 @@ addEventListener("load", function(){
     })
     
     update_progress_and_correctness = function update_progress_and_correctness(){
-        from_id("test_progress").firstChild.nodeValue = "Question " + (questions_done + 1) + " of " + number_of_questions;
-        from_id("answers_correct").firstChild.nodeValue = correct_answer_count;
-        from_id("answers_wrong").firstChild.nodeValue = incorrect_answer_count;
+        from_id("test_progress").firstChild.nodeValue = "Question " + (current_test_object.questions_done + 1) + " of " + number_of_questions;
+        from_id("answers_correct").firstChild.nodeValue = current_test_object.answers_correct;
+        from_id("answers_wrong").firstChild.nodeValue = current_test_object.answers_incorrect;
     }
     
     reset_test_screen = function reset_test_screen(){
@@ -115,7 +116,7 @@ addEventListener("load", function(){
     }
     
     show_results_answers_correct = function show_results_answers_correct(){
-        from_id("results_answers_correct").innerHTML = correct_answer_count + " / " + number_of_questions;
+        from_id("results_answers_correct").innerHTML = current_test_object.answers_correct + " / " + number_of_questions;
     }
     
     //Add event handlers for results screen buttons

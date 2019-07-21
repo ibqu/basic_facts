@@ -1,243 +1,272 @@
-"use strict";
+"use strict"
 
-//features to add
-//timing
-//right and wrong
-//count of completed questions
-//adaptive tests
-//you need to differentiate this from the others
-//maybe you can publish the general quiz infrastructure separately (maybe not)
+//default stuff provided
+var OPERATION_TEXT = {"+": "+", "-": "&minus;", "*": "&times;", "/": "&divide;"};
 
-//Just do something simple and naive
-//Just remember to prevent a positive feedback loop from constantly getting specific numbers picked again and again
-//Possible solution:
-/*
-For some fraction of the time, just pick the number randomly.
-For the other fraction of the time, pick using the adaptive range
-*/
-//Better idea of how it should work:
-/*
-Pick high and low values within the range (0, 1) corresponding to being correct and incorrect.
-Ensure high and low are sufficiently far from the ends of the range.
-To select from the adaptive range, just do random selection of indices weighted by their corresponding values.
-To tweak the values in response to new information, do a weighted average.
-*/
-//The adaptive range function is supposed to be used for selecting from a range
-function SimpleAdaptiveRange(start, upper_bound){
-    if(start === upper_bound) throw new Error("no elements in range");
-    //just equally distribute them first
-    var number_of_elements = this.number_of_elements = upper_bound - start;
-    this.start = start;
-    this.array = (new Array(number_of_elements)).fill(1 / number_of_elements);
+var ARITHMETIC_4_OPERATIONS = ["+", "-", "*", "/"];
+
+function random(a, b){
+    return a + ~~(Math.random() * (b - a));
 }
 
-SimpleAdaptiveRange.prototype = Object.assign(
-    Object.create(null),
-    {
-        "new_value_incorrect": 0.8,
-        "new_value_correct": 0.2,
-        "new_value_weight": 0.2,
-        "pick": function(){
-            //monitor the array and see if any elements don't get picked
-            var sum = 0;
-            for(var i = 0; i < this.number_of_elements; ++i){
-                sum += this.array[i];
-            }
-            var random_value = Math.random() * sum;
-            var sum2 = 0;
-            for(var i = 0; i < this.number_of_elements - 1; ++i){
-                sum2 += this.array[i];
-                if(sum2 >= random_value) break;
-            }
-            return i + this.start;
-        },
-        
-        "get_element": function(range_element){
-            return this.array[range_element - this.start];
-        },
-        
-        "set_element": function(range_element, new_value){
-            this.array[range_element - this.start] = new_value;
-        },
-        
-        "tweak_value": function(index, new_value){
-            //monitor the array and see if any values change weirdly or don't change at all
-            this.array[index] = this.array[index] * (1 - this.new_value_weight) + new_value * this.new_value_weight;
-        },
-        
-        "register_correctness": function(range_element, is_correct){
-            var index = range_element - this.start;
-            this.tweak_value(index, is_correct ? this.new_value_correct : this.new_value_incorrect);
-        }
-    });
+function random_select(a){
+    if(!a.length) throw new Error("No elements to select from");
+    return a[~~(Math.random() * a.length)]
+}
 
-function compute_weight(existing_weight, is_correct, time_taken){
-    //if the time taken is high, make the question more likely
-    //if the answer is incorrect, make the question more likely
-    //if the existing weight is higher, the question should be more likely
-    //The objective is to make it better at improving basic facts skills
-    //Possibly usable: exponential function
-    //Wrong answers should be worse than answers which take a while to come(but not extremely long)
+var test_example = {
+    "name": "example",
+    "temp_data": {},
+    "stored_data": {},
+    "number_of_questions": 10,
+    //the following are called after the major interface changes have been made
     
-    //this is in milliseconds
-    var time_taken_cap = 3000;
-    var new_value;
-    //influence of new_value on the resulting value
-    var malleability = 0.2;
+    //generate_expression will be called immediately after this
+    "start_test": function(){},
     
-    if(is_correct){
-        new_value = 0.1 + Math.max(time_taken / time_taken_cap, 1) * 0.3;
-    }else{
-        new_value = 0.4 + Math.max(time_taken / time_taken_cap, 1) * 0.5;
+    "finish_test": function(){
+        //maybe use this for a custom results screen later
+    },
+    
+    //stopping without completing
+    "stop_test": function(){},
+    
+    "generate_expression": function(){return "abc";},
+    
+    //required
+    "submit_answer": function(answer){
+        //the only sort of thing needed if mutating internal data is unnecessary
+        return answer === "abc";
+    },
+    
+    //if this is true then the only keys which will modify the content of the answer box
+    //are: the number keys, backspace, and the hyphen (for representing the minus sign)
+    //(note that nothing is currently being done about copy and paste)
+    "numeric": false,
+    
+    //something which will be called during the preparation
+    //generally this can just do nothing
+    "initialise": function(){},
+    
+    //defining these attributes here will do nothing
+    "option": null,
+    "answers_correct": 0,
+    "answers_incorrect": 0,
+    "questions_done": 0
+}
+
+//will be called automatically
+function process_test_object(test_object){
+    
+    //add missing properties
+    var default_property_names = Object.getOwnPropertyNames(test_example);
+    for(var i = 0; i < default_property_names.length; ++i){
+        var current_name = default_property_names[i];
+        if(!(current_name in test_object)){
+            test_object[current_name] = test_example[current_name]
+        }
     }
     
-    return existing_weight * (1 - malleability) + new_value * malleability;
+    test_object.initialise();
 }
 
-
-//you will need to do some rewriting to make this more powerful
-var tests = [
-    (function(){
-        var operation_generators = {
-            "+": function(){
-                var a = random(0, 10);
-                var b = random(0, 10);
-                return {
-                    "expression": a + OPERATION_TEXT["+"] + b,
-                    "check": function(answer){
-                        return +answer === a + b;
-                    }
-                }
-            },
-            "-": function(){
-                var a = random(0, 10);
-                var b = random(0, 10);
-                return {
-                    "expression": a + OPERATION_TEXT["-"] + b,
-                    "check": function(answer){
-                        return +answer === a - b;
-                    }
-                }
-            },
-            "*": function(){
-                var a = random(0, 10);
-                var b = random(0, 10);
-                return {
-                    "expression": a + OPERATION_TEXT["*"] + b,
-                    "check": function(answer){
-                        return +answer === a * b;
-                    }
-                }
-            },
-            "/": function(){
-                var a = random(0, 10);
-                var b = random(1, 10);
-                return {
-                    "expression": (a * b) + OPERATION_TEXT["/"] + b,
-                    "check": function(answer){
-                        return +answer === a;
-                    }
-                }
-            }
-        }
-        
-        return {
-            "name": "4 operations",
-            "number_of_questions": 25,
-            "numeric": true,
-            //Returned format:
-            /*
-            {"expression": "", "check": function(answer){}}
-            */
-            "generate": function(){
-                var operation = random_select(["+", "-", "*", "/"])
-                return operation_generators[operation]();
-            }
-        }
-    })(),
+function Simple1DAdaptiveArray(least, upper_bound){
+    //note that asymptotically faster (O(log n)) ways of picking values and modifying weights are unnecessary at the moment.
+    //the naive O(n) method is good enough when n is small
     
-    (function(){
-        /*it is necessary to include other information like timing to compensate for the lack of information coming from whether answers are correct or incorrect*/
-        /*however times will need to be normalised to keep everything in the appropriate ranges*/
-        /*a simple solution is to just cap the time used*/
-        var operation_adaptive_ranges = {
-            "+": [new SimpleAdaptiveRange(0, 10), new SimpleAdaptiveRange(0, 10)],
-            "-": [new SimpleAdaptiveRange(0, 10), new SimpleAdaptiveRange(0, 10)],
-            "*": [new SimpleAdaptiveRange(0, 10), new SimpleAdaptiveRange(0, 10)],
-            "/": [new SimpleAdaptiveRange(0, 10), new SimpleAdaptiveRange(1, 10)],
-        }
-        
-        var operation_generators = {
-            "+": function(){
-                var a = operation_adaptive_ranges["+"][0].pick();
-                var b = operation_adaptive_ranges["+"][1].pick();
-                return {
-                    "expression": a + OPERATION_TEXT["+"] + b,
-                    "check": function(answer){
-                        return +answer === a + b;
-                    }
-                }
-            },
-            "-": function(){
-                var a = operation_adaptive_ranges["-"][0].pick();
-                var b = operation_adaptive_ranges["-"][1].pick();
-                return {
-                    "expression": a + OPERATION_TEXT["-"] + b,
-                    "check": function(answer){
-                        return +answer === a - b;
-                    }
-                }
-            },
-            "*": function(){
-                var a = operation_adaptive_ranges["*"][0].pick();
-                var b = operation_adaptive_ranges["*"][1].pick();
-                return {
-                    "expression": a + OPERATION_TEXT["*"] + b,
-                    "check": function(answer){
-                        return +answer === a * b;
-                    }
-                }
-            },
-            "/": function(){
-                var a = operation_adaptive_ranges["/"][0].pick();
-                var b = operation_adaptive_ranges["/"][1].pick();
-                return {
-                    "expression": (a * b) + OPERATION_TEXT["/"] + b,
-                    "check": function(answer){
-                        return +answer === a;
-                    }
-                }
-            }
-        }
-        
-        return {
-            "name": "4 operations (adaptive)",
-            "number_of_questions": 25,
-            "numeric": true,
-            //Returned format:
-            /*
-            {"expression": "", "check": function(answer){}}
-            */
-            "generate": function(){
-                var operation = random_select(["+", "-", "*", "/"])
-                return operation_generators[operation]();
-            }
-        }
-    })()
-];
+    this.least = least;
+    this.upper_bound = upper_bound;
+    this.array = (new Array(upper_bound - least)).fill(this.initial_weight);
+    this.last_picked_value = least;
+}
 
-var _unused_tests = [
+Simple1DAdaptiveArray.prototype = Object.assign(
+    Object.create(null),
     {
-        "name": "abc",
-        "number_of_questions": 10,
-        "numeric": false,
-        "generate": function(){
-            return {
-                "expression": "abc",
-                "check": function(answer){
-                    return answer === "abc";
+        "initial_weight": 1,
+        "malleability": 0.2,
+        "pick": function(){
+            var total = 0;
+            for(var i = 0; i < this.array.length; ++i){
+                total += this.array[i];
+            }
+            var random_value = total * Math.random();
+            for(var i = 0; i < this.array.length - 1; ++i){
+                random_value -= this.array[i];
+                if(random_value < 0) break;
+            }
+            this.last_picked_element = i + this.least
+            return this.last_picked_element;
+        },
+        "set": function(element, value){
+            this.array[element - this.least] = value;
+        },
+        "tweak": function(element, value){
+            var index = element - this.least;
+            this.array[index] = this.array[index] * (1 - this.malleability) + value * this.malleability;
+        },
+        "last_picked_element": 0,
+        "tweak_last_picked_element": function(value){
+            this.tweak(this.last_picked_element, value);
+        }
+    }
+);
+
+var tests = [
+    {
+        "name": "4 operations",
+        "temp_data": {
+            "answer": 0,
+            "question_generators": null
+        },
+        "number_of_questions": 25,
+        "submit_answer": function(answer){
+            return +answer === this.temp_data.answer;
+        },
+        "generate_expression": function(){
+            return this.temp_data.question_generators[random_select(ARITHMETIC_4_OPERATIONS)]();
+        },
+        "numeric": true,
+        "initialise": function(){
+            this.temp_data.test_object = this;
+            
+            var test_object = this;
+            
+            this.temp_data.question_generators = {
+                "+": function(){
+                    var a = random(0, 10), b = random(0, 10);
+                    test_object.temp_data.answer = a + b;
+                    return a + OPERATION_TEXT["+"] + b;
+                },
+                "-": function(){
+                    var a = random(0, 10), b = random(0, 10);
+                    test_object.temp_data.answer = a - b;
+                    return a + OPERATION_TEXT["-"] + b;
+                },
+                "*": function(){
+                    var a = random(0, 10), b = random(0, 10);
+                    test_object.temp_data.answer = a * b;
+                    return a + OPERATION_TEXT["*"] + b;
+                },
+                "/": function(){
+                    var a = random(0, 10), b = random(1, 10);
+                    test_object.temp_data.answer = a;
+                    return (a * b) + OPERATION_TEXT["/"] + b;
                 }
             }
+        }
+    },
+    {
+        "name": "4 operations (adaptive)",
+        
+        "temp_data": {
+            "answer": 0,
+            "weights": null,
+            "expression_generators": null,
+            "last_operation": "+",
+            "time_since_last_question": 0,
+            "is_first_question": true,
+            "log_weights": function(){
+                function round(a){return Math.round(a * 1e3) / 1e3;}
+                for(var i = 0; i < 4; ++i){
+                    var operation = ARITHMETIC_4_OPERATIONS[i];
+                    var weights = this.weights[operation];
+                    console.log(operation, weights[0].array.map(round));
+                    console.log(" ", weights[1].array.map(round));
+                }
+            }
+        },
+        
+        "stored_data": {
+            
+        },
+        
+        "number_of_questions": 25,
+        
+        "start_test": function(){
+            this.temp_data.is_first_question = true;
+        },
+        
+        "finish_test": function(){
+            
+        },
+        
+        "stop_test": function(){
+            
+        },
+        
+        "generate_expression": function(){
+            var operation = this.temp_data.last_operation = random_select(ARITHMETIC_4_OPERATIONS);
+            var weights = this.temp_data.weights[operation];
+            return this.temp_data.expression_generators[operation](
+                weights[0].pick(),
+                weights[1].pick());
+        },
+        
+        "submit_answer": function(answer){
+            //don't tweak the weights with information from the first question
+            //only register the time
+            var is_correct = (+answer === this.temp_data.answer);
+            var now = performance.now();
+            
+            //use information to adjust weights if this is not the first question
+            if(this.temp_data.is_first_question){
+                this.temp_data.is_first_question = false;
+            }else{
+                var INTERVAL_CAP = 2000;
+                var INCORRECTNESS_PENALTY = 0.5;
+                var INSTANT_CORRECT_ANSWER_VALUE = 0.1;
+                var LATE_ANSWER_PENALTY = 0.3;
+                var weights = this.temp_data.weights[this.temp_data.last_operation];
+                var capped_interval = Math.min(now - this.temp_data.time_since_last_question, INTERVAL_CAP);
+                //current scheme:
+                //value to tweak with is a linear function of capped_interval
+                //fixed penalty for incorrectness
+                var time_penalty = LATE_ANSWER_PENALTY * capped_interval / INTERVAL_CAP;
+                var new_value = time_penalty + (is_correct ? 0 : INCORRECTNESS_PENALTY);
+                weights[0].tweak_last_picked_element(new_value);
+                weights[1].tweak_last_picked_element(new_value);
+            }
+            
+            this.temp_data.time_since_last_question = now;
+            return is_correct;
+        },
+        
+        "numeric": true,
+        
+        "initialise": function(){
+            //consider storing this in stored_data
+            this.temp_data.weights = {
+                "+": [new Simple1DAdaptiveArray(0, 10), new Simple1DAdaptiveArray(0, 10)],
+                "-": [new Simple1DAdaptiveArray(0, 10), new Simple1DAdaptiveArray(0, 10)],
+                "*": [new Simple1DAdaptiveArray(0, 10), new Simple1DAdaptiveArray(0, 10)],
+                "/": [new Simple1DAdaptiveArray(0, 10), new Simple1DAdaptiveArray(1, 10)]
+            }
+            
+            var test_object = this;
+            
+            function set_answer(a){
+                test_object.temp_data.answer = a;
+            }
+            
+            this.temp_data.expression_generators = {
+                "+": function(a, b){
+                    set_answer(a + b);
+                    return a + OPERATION_TEXT["+"] + b;
+                },
+                "-": function(a, b){
+                    set_answer(a - b);
+                    return a + OPERATION_TEXT["-"] + b;
+                },
+                "*": function(a, b){
+                    set_answer(a * b);
+                    return a + OPERATION_TEXT["*"] + b;
+                },
+                "/": function(a, b){
+                    set_answer(a);
+                    return (a * b) + OPERATION_TEXT["/"] + b;
+                }
+            };
         }
     }
 ]
