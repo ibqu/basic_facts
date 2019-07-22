@@ -6,6 +6,7 @@ var OPERATION_TEXT = {"+": "+", "-": "&minus;", "*": "&times;", "/": "&divide;"}
 var ARITHMETIC_4_OPERATIONS = ["+", "-", "*", "/"];
 
 function random(a, b){
+    if(arguments.length === 1) return ~~(Math.random() * a);
     return a + ~~(Math.random() * (b - a));
 }
 
@@ -14,9 +15,44 @@ function random_select(a){
     return a[~~(Math.random() * a.length)]
 }
 
-var test_example = {
+function range(a, b){
+    if(arguments.length === 1){
+        var start = 0;
+        var length = a;
+    }else{
+        var start = a;
+        var length = b - a;
+    }
+    var array = new Array(length);
+    for(var i = 0; i < length; ++i){
+        array[i] = i + start;
+    }
+    return array;
+}
+
+//just for viewing
+var _test_object_attributes = [
+    "name",
+    "description",
+    "temp_data",
+    "stored_data",
+    "number_of_questions",
+    "start_test",
+    "finish_test",
+    "stop_test",
+    "generate_expression",
+    "submit_answer",
+    "numeric",
+    "initialise"
+];
+
+var _test_example = {
     "name": "example",
+    "description": "example",
     "temp_data": {},
+    
+    //to do: add feature to store the contents of this
+    //in local storage
     "stored_data": {},
     "number_of_questions": 10,
     //the following are called after the major interface changes have been made
@@ -55,15 +91,35 @@ var test_example = {
     "questions_done": 0
 }
 
+var test_template = {
+    "name": "",
+    "description": "",
+    "temp_data": {},
+    "stored_data": {},
+    "number_of_questions": 10,
+    "start_test": function(){},
+    "finish_test": function(){},
+    "stop_test": function(){},
+    "generate_expression": function(){},
+    "submit_answer": function(){},
+    "numeric": false,
+    "initialise": function(){},
+    
+    "option": null,
+    "answers_correct": 0,
+    "answers_incorrect": 0,
+    "questions_done": 0
+}
+
 //will be called automatically
 function process_test_object(test_object){
     
     //add missing properties
-    var default_property_names = Object.getOwnPropertyNames(test_example);
+    var default_property_names = Object.getOwnPropertyNames(test_template);
     for(var i = 0; i < default_property_names.length; ++i){
         var current_name = default_property_names[i];
         if(!(current_name in test_object)){
-            test_object[current_name] = test_example[current_name]
+            test_object[current_name] = test_template[current_name]
         }
     }
     
@@ -112,9 +168,65 @@ Simple1DAdaptiveArray.prototype = Object.assign(
     }
 );
 
+//Fisher-Yates (or Knuth) shuffle
+function in_place_permute(array){
+    var elements_remaining = array.length;
+    //randomly picks elements from the first part and puts it in the second part
+    for(; elements_remaining; --elements_remaining){
+        var random_index = random(elements_remaining);
+        //may do a degenerate swap, but that does not matter
+        [array[random_index], array[elements_remaining - 1]] = [array[elements_remaining - 1], array[random_index]]
+    }
+    return array;
+}
+
+//not suitable if there is a large number of possible tuples
+function FullCoverageSelector(array){
+    if(!array.length) throw new Error("Zero length array");
+    this.array = in_place_permute(array.slice());
+    this.current_index = 0;
+}
+
+FullCoverageSelector.prototype = Object.assign(
+    Object.create(null),
+    {
+        "array": [],
+        "current_index": 0,
+        "select": function(){
+            if(this.current_index < this.array.length) return this.array[this.current_index++];
+            in_place_permute(this.array);
+            this.current_index = 1;
+            return this.array[0];
+        }
+    }
+);
+
+//example: direct_product(["a", "b", "c"], ["1", "2", "3"])
+function direct_product(){
+    var tuples = arguments;
+    var tuple_count = tuples.length;
+    
+    //higher order looping alert
+    //it's okay to do it with recursion
+    //it's okay if this is not particularly efficient
+    var array = [[]];
+    for(var tuple_number = tuple_count - 1; 0 <= tuple_number; --tuple_number){
+        var array2 = [];
+        var current_tuple = tuples[tuple_number];
+        for(var i = 0; i < current_tuple.length; ++i){
+            for(var array_index = 0; array_index < array.length; ++array_index){
+                array2.push([current_tuple[i]].concat(array[array_index]));
+            }
+        }
+        array = array2;
+    }
+    return array;
+}
+
 var tests = [
     {
         "name": "4 operations",
+        "description": "Practice your basic facts with randomly and uniformly chosen inputs.",
         "temp_data": {
             "answer": 0,
             "question_generators": null
@@ -158,6 +270,8 @@ var tests = [
     },
     {
         "name": "4 operations (adaptive)",
+        
+        "description": "Practice basic facts with a focus on your weaknesses.",
         
         "temp_data": {
             "answer": 0,
@@ -268,5 +382,42 @@ var tests = [
                 }
             };
         }
+    },
+    {
+        "name": "4 operations (full coverage)",
+        "description": "Practice everything (guaranteed)",
+        "temp_data": {
+            "answer": 0,
+            "selector": new FullCoverageSelector(
+                //all tuples corresponding to the questions of interest
+                direct_product(["+", "-", "*"], range(10), range(10))
+                .concat(direct_product(["/"], range(10), range(1, 10)))
+            )
+        },
+        "stored_data": {},
+        "number_of_questions": 390,
+        "start_test": function(){},
+        "finish_test": function(){},
+        "stop_test": function(){},
+        "generate_expression": function(){
+            var tuple = this.temp_data.selector.select();
+            if(tuple[0] !== "/"){
+                //don't use Function or eval
+                this.temp_data.answer = {
+                    "+": (a, b)=> a + b,
+                    "-": (a, b)=> a - b,
+                    "*": (a, b) => a * b
+                }[tuple[0]](tuple[1], tuple[2]);
+                return tuple[1] + OPERATION_TEXT[tuple[0]] + tuple[2];
+            }else{
+                this.temp_data.answer = tuple[1];
+                return (tuple[1] * tuple[2]) + OPERATION_TEXT["/"] + tuple[2];
+            }
+        },
+        "submit_answer": function(answer){
+            return +answer === this.temp_data.answer;
+        },
+        "numeric": true,
+        "initialise": function(){}
     }
 ]

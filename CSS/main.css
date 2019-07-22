@@ -10,7 +10,7 @@ body{
 }
 #left_panel{
     height: 100%;
-    width: 200px;
+    width: 300px;
     float: left;
     background: cornflowerblue;
     text-align: left;
@@ -61,7 +61,7 @@ body{
     font-size: 120%;
     color: white;
     padding-left: 60px;
-    padding-right: 40px;
+    padding-right: 20px;
     cursor: default;
     user-select: none;
     text-indent: -20px;
