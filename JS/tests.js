@@ -197,6 +197,10 @@ FullCoverageSelector.prototype = Object.assign(
             in_place_permute(this.array);
             this.current_index = 1;
             return this.array[0];
+        },
+        "reset": function(){
+            in_place_permute(this.array);
+            this.current_index = 0;
         }
     }
 );
@@ -396,7 +400,9 @@ var tests = [
         },
         "stored_data": {},
         "number_of_questions": 390,
-        "start_test": function(){},
+        "start_test": function(){
+            this.temp_data.selector.reset();
+        },
         "finish_test": function(){},
         "stop_test": function(){},
         "generate_expression": function(){
